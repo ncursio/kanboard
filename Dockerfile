@@ -8,7 +8,15 @@ LABEL org.opencontainers.image.source="https://github.com/kanboard/kanboard" \
     org.opencontainers.image.url="https://kanboard.org" \
     org.opencontainers.image.documentation="https://docs.kanboard.org"
 
-VOLUME ["/var/www/app/data", "/var/www/app/plugins", "/etc/nginx/ssl"]
+# Upstream also declares /etc/nginx/ssl as a VOLUME -- found live: on Fly's Machine
+# runtime this makes the self-signed cert entrypoint.sh generates on every boot
+# (openssl req ... -out /etc/nginx/ssl/kanboard.crt) not actually land where nginx
+# expects it, so nginx fails to start at all ("cannot load certificate", BIO_new_file
+# failed) and the container crash-loops. Fly's own edge already terminates TLS for
+# external traffic and nothing here needs this path to persist across restarts
+# (shared demo instance, no persistence model), so dropping it from VOLUME entirely
+# is simpler and more robust than debugging Fly's anonymous-volume semantics.
+VOLUME ["/var/www/app/data", "/var/www/app/plugins"]
 
 EXPOSE 80 443
 
