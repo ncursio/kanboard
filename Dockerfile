@@ -31,6 +31,14 @@ RUN apk --no-cache --update add \
     rm -f /etc/php84/php-fpm.d/www.conf && \
     ln -sf /usr/bin/php84 /usr/bin/php
 
+# Found live, second pass: dropping the VOLUME declaration alone wasn't enough -- the
+# directory itself was never actually created by nginx's own package install, so the
+# entrypoint's self-signed cert generation (openssl req ... -out
+# /etc/nginx/ssl/kanboard.crt) still had nowhere to write and nginx still crash-looped
+# the exact same way. Create the real directory here so it unambiguously exists in the
+# image regardless of volume/mount semantics.
+RUN mkdir -p /etc/nginx/ssl
+
 ADD . /var/www/app
 ADD docker/ /
 
